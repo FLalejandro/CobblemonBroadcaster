@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "cobblemonbroadcaster",
+	"version": "${version}",
+	"name": "CobblemonBroadcaster",
+	"description": "Broadcasts Cobblemon spawning to chat",
+	"authors": [
+		"Novoro"
+	],
+	"contact": {
+		"repo": ""
+	},
+	"license": "All Rights Reserved",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "CobblemonBroadcaster.CobblemonBroadcaster",
+				"adapter": "kotlin"
+			}
+		]
+	},
+	"mixins": [
+		"cobblemonbroadcaster.mixins.json"
+	],
+	"depends": {
+		"java": ">=21",
+		"minecraft": ">=1.21.0",
+		"fabric-api": "*",
+		"fabricloader": ">=0.14.21",
+		"luckperms": "*",
+		"fabric-language-kotlin": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

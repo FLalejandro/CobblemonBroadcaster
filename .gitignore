@@ -1,0 +1,7 @@
+.idea
+.gitattributes
+.gradle
+out
+run
+build
+wrapper
