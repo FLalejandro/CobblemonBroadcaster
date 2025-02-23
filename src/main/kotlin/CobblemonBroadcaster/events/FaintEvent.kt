@@ -16,34 +16,20 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
     private val faintedPokemonCache = mutableSetOf<String>() // Cache to avoid duplicate announcements
 
     init {
-        CobblemonEvents.POKEMON_FAINTED.subscribe(priority = Priority.LOWEST) { event ->
-            val now = System.currentTimeMillis()
+        CobblemonEvents.BATTLE_FAINTED.subscribe(priority = Priority.LOWEST) { event ->
 
-            // Skips firing the FAINTED event when player joins to avoid fainted Party/PC pokemon from triggering this
-            for ((uuid, loginTime) in CobblemonBroadcaster.playerLoginTimes) {
-                if (now - loginTime < 5000) { // 5000ms = 5s
-                    //SimpleLogger.debug("[FaintEvent] Skipping because a player joined <=5s ago.")
-                    return@subscribe
-                }
-            }
+            val pokemon = event.killed.effectedPokemon
 
-            val pokemon = event.pokemon
 
             // Ensure the Pokémon is wild and not already processed
-            if (!pokemon.isWild()) {
-                return@subscribe
-            }
-            if (faintedPokemonCache.contains(pokemon.uuid.toString())) {
-                return@subscribe
-            }
+            if (pokemon.isPlayerOwned()) return@subscribe
+            if (faintedPokemonCache.contains(pokemon.uuid.toString())) return@subscribe
 
             // Check if the Pokémon is a boss (if applicable). Love u Guitar pookie
             val nbt = pokemon.persistentData
             val isBoss = nbt.getBoolean("boss")
             if (isBoss) return@subscribe
 
-
-            // Debugging: Log all aspects of the Pokémon
             val aspects = AspectProvider.providers.flatMap { it.provide(pokemon) }
             //SimpleLogger.debug("Pokemon ${pokemon.species.name} has aspects: $aspects")
 
