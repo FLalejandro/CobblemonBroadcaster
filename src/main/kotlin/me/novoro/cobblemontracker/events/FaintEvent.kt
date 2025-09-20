@@ -1,15 +1,11 @@
-package CobblemonBroadcaster.events
+package me.novoro.cobblemontracker.events
 
-import CobblemonBroadcaster.CobblemonBroadcaster
-import CobblemonBroadcaster.config.Configuration
-import CobblemonBroadcaster.util.BlacklistedWorlds
-import CobblemonBroadcaster.util.LangManager
-import CobblemonBroadcaster.util.SimpleLogger
+import me.novoro.cobblemontracker.api.configuration.Configuration
+import me.novoro.cobblemontracker.config.LangManager
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.world.ServerWorld
 
 class FaintEvent(private val config: Configuration, private val server: MinecraftServer) {
 
@@ -22,7 +18,7 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
 
 
             // Ensure the Pokémon is wild and not already processed
-            if (pokemon.isPlayerOwned()) return@subscribe
+            if (!pokemon.isWild()) return@subscribe
             if (faintedPokemonCache.contains(pokemon.uuid.toString())) return@subscribe
 
             // Check if the Pokémon is a boss (if applicable). Love u Guitar pookie
@@ -72,7 +68,7 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
 
         // Send the message to all online players
         server.playerManager.playerList.forEach { player ->
-            LangManager.send(player, langKey, replacements)
+            LangManager.sendLang(player, langKey, replacements)
         }
 
         // Return true to indicate the category was handled

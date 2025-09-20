@@ -1,12 +1,12 @@
-package CobblemonBroadcaster.events
+package me.novoro.cobblemontracker.events
 
-import CobblemonBroadcaster.config.Configuration
-import CobblemonBroadcaster.util.BlacklistedWorlds
-import CobblemonBroadcaster.util.LangManager
-import CobblemonBroadcaster.util.SimpleLogger
+import me.novoro.cobblemontracker.api.configuration.Configuration
+import me.novoro.cobblemontracker.util.BlacklistedWorlds
+import me.novoro.cobblemontracker.config.LangManager
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
+import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 
@@ -27,25 +27,29 @@ class SpawnEvent(private val config: Configuration) {
             // Debugging: Log all aspects of the Pokémon
             //SimpleLogger.debug("Pokemon ${pokemonEntity.pokemon.species.name} has aspects: $aspects")
 
+
+            // Get nearest player as fallback for spawner name
+            val spawnerName = findNearestPlayerName(pokemonEntity) ?: "Unknown"
+
             // Dynamically check user-defined aspects
             config.keys.forEach { customCategory ->
                 if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
                     if (customCategory in aspects) {
-                        if (handleCategory(pokemonEntity, event.ctx.spawner.name, customCategory) { true }) return@subscribe
+                        if (handleCategory(pokemonEntity, spawnerName, customCategory) { true }) return@subscribe
                     }
                 }
             }
 
             // Default categories with priority
-            if (handleCategory(pokemonEntity, event.ctx.spawner.name, "mythical") { pokemonEntity.pokemon.isMythical() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.ctx.spawner.name, "legendary") { pokemonEntity.pokemon.isLegendary() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.ctx.spawner.name, "ultrabeast") { pokemonEntity.pokemon.isUltraBeast() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.ctx.spawner.name, "shiny") { pokemonEntity.pokemon.shiny }) return@subscribe
+            if (handleCategory(pokemonEntity, spawnerName, "mythical") { pokemonEntity.pokemon.isMythical() }) return@subscribe
+            if (handleCategory(pokemonEntity, spawnerName, "legendary") { pokemonEntity.pokemon.isLegendary() }) return@subscribe
+            if (handleCategory(pokemonEntity, spawnerName, "ultrabeast") { pokemonEntity.pokemon.isUltraBeast() }) return@subscribe
+            if (handleCategory(pokemonEntity, spawnerName, "shiny") { pokemonEntity.pokemon.shiny }) return@subscribe
         }
     }
 
     private fun handleCategory(
-        pokemonEntity: com.cobblemon.mod.common.entity.pokemon.PokemonEntity,
+        pokemonEntity: PokemonEntity,
         spawnerName: String,
         category: String,
         condition: () -> Boolean
@@ -65,9 +69,16 @@ class SpawnEvent(private val config: Configuration) {
 
         // Send the message to all players
         pokemonEntity.server?.playerManager?.playerList?.forEach { player ->
-            LangManager.send(player as ServerPlayerEntity, langKey, replacements)
+            LangManager.sendLang(player as ServerPlayerEntity, langKey, replacements)
         }
 
         return true
     }
+
+    private fun findNearestPlayerName(pokemonEntity: PokemonEntity): String? {
+        val world = pokemonEntity.world as? ServerWorld ?: return null
+        return world.players.minByOrNull { it.pos.distanceTo(pokemonEntity.pos) }?.name?.string
+    }
+
+
 }

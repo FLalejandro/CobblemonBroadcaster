@@ -1,4 +1,4 @@
-package CobblemonBroadcaster.config;
+package me.novoro.cobblemontracker.api.configuration;
 
 import com.google.common.base.Charsets;
 import org.yaml.snakeyaml.DumperOptions;
@@ -11,24 +11,18 @@ import java.io.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+
 /**
  * A class used to create a {@link Configuration} using snakeyaml, based off of BungeeCord's configuration implementation.
  * To read a file into a {@link Configuration}, use {@link YamlConfiguration#loadConfiguration(File)}.
  */
 public final class YamlConfiguration {
-
     private static final ThreadLocal<Yaml> yaml = ThreadLocal.withInitial(() -> {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setIndent(2);
-        options.setPrettyFlow(true);
-
-        Representer representer = new Representer(options) {
-            {
-                representers.put(Configuration.class, data -> represent(((Configuration) data).self));
-            }
-        };
-
+        Representer representer = new Representer(options) {{
+            representers.put(Configuration.class, data -> represent(((Configuration) data).self));
+        }};
         return new Yaml(new Constructor(new LoaderOptions()), representer, options);
     });
 

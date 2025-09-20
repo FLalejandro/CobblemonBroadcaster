@@ -1,8 +1,8 @@
-package CobblemonBroadcaster.events
+package me.novoro.cobblemontracker.events
 
-import CobblemonBroadcaster.config.Configuration
-import CobblemonBroadcaster.util.BlacklistedWorlds
-import CobblemonBroadcaster.util.LangManager
+import me.novoro.cobblemontracker.api.configuration.Configuration
+import me.novoro.cobblemontracker.util.BlacklistedWorlds
+import me.novoro.cobblemontracker.config.LangManager
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
@@ -67,7 +67,7 @@ class CaptureEvent(private val config: Configuration) {
 
         // Send the message to all players
         player.server?.playerManager?.playerList?.forEach { targetPlayer ->
-            LangManager.send(targetPlayer as ServerPlayerEntity, langKey, replacements)
+            LangManager.sendLang(targetPlayer as ServerPlayerEntity, langKey, replacements)
         }
 
         // Return true to indicate the category was handled

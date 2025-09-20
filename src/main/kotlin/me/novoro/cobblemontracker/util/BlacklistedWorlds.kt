@@ -1,6 +1,6 @@
-package CobblemonBroadcaster.util
+package me.novoro.cobblemontracker.util
 
-import CobblemonBroadcaster.config.Configuration
+import me.novoro.cobblemontracker.api.configuration.Configuration
 import java.util.*
 
 /**

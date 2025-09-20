@@ -1,4 +1,6 @@
-package CobblemonBroadcaster.config;
+package me.novoro.cobblemontracker.api.configuration;
+
+import me.novoro.cobblemontracker.api.Location;
 
 import java.io.File;
 import java.util.*;
@@ -78,7 +80,7 @@ public class Configuration {
     }
 
     public Object get(String path) {
-        return get(path, null);
+        return get(path, getDefault(path));
     }
 
     public Object getDefault(String path) {
@@ -105,11 +107,6 @@ public class Configuration {
     public Configuration getSection(String path) {
         Object def = getDefault(path);
         return (Configuration) get(path, (def instanceof Configuration) ? def : new Configuration((defaults == null) ? null : defaults.getSection(path)));
-    }
-
-    public boolean isSection(String path) {
-        Object val = get(path, null);
-        return val instanceof Configuration;
     }
 
     public Collection<String> getKeys() {
@@ -333,24 +330,13 @@ public class Configuration {
         return (val != null) ? val : def;
     }
 
-    public Map<String, Object> getValues(boolean deep) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : self.entrySet()) {
-            if (entry.getValue() instanceof Configuration) {
-                Configuration section = (Configuration) entry.getValue();
-                if (deep) {
-                    Map<String, Object> deepValues = section.getValues(true);
-                    for (Map.Entry<String, Object> deepEntry : deepValues.entrySet()) {
-                        result.put(entry.getKey() + SEPARATOR + deepEntry.getKey(), deepEntry.getValue());
-                    }
-                } else {
-                    result.put(entry.getKey(), entry.getValue());
-                }
-            } else {
-                result.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return result;
+    public Location getLocation(String path) {
+        return this.getLocation(path, null);
     }
 
+    public Location getLocation(String path, Location def) {
+        Configuration section = this.getSection(path);
+        if (section == null) return def;
+        return new Location(section);
+    }
 }
