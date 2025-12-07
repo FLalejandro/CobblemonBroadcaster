@@ -12,8 +12,14 @@ class SpawnEvent(private val config: Configuration) {
 
     init {
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(priority = Priority.LOWEST) { event ->
+            //val aspects = AspectProvider.providers.flatMap { it.provide(pokemonEntity.pokemon) }
+            //val labels = pokemonEntity.pokemon.species.labels
+
             val pokemonEntity = event.entity
-            val aspects = AspectProvider.providers.flatMap { it.provide(pokemonEntity.pokemon) }
+            val aspectsAndLabels = mutableSetOf<String>()
+            aspectsAndLabels.addAll(AspectProvider.providers.flatMap {it.provide(pokemonEntity.pokemon)})
+            aspectsAndLabels.addAll(pokemonEntity.pokemon.species.labels)
+
 
             // Blacklist Stuff
             val world = event.entity.world as? ServerWorld
@@ -28,17 +34,20 @@ class SpawnEvent(private val config: Configuration) {
             // Dynamically check user-defined aspects
             config.keys.forEach { customCategory ->
                 if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
-                    if (customCategory in aspects) {
+                    if (customCategory in aspectsAndLabels) {
                         if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, customCategory) { true }) return@subscribe
                     }
                 }
             }
 
-            // Default categories with priority
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "mythical") { pokemonEntity.pokemon.isMythical() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "legendary") { pokemonEntity.pokemon.isLegendary() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "ultrabeast") { pokemonEntity.pokemon.isUltraBeast() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "shiny") { pokemonEntity.pokemon.shiny }) return@subscribe
+            // Default categories
+            for (category in aspectsAndLabels) {
+                if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, category) {
+                    true
+                }) {
+                    return@subscribe
+                }
+            }
         }
     }
 

@@ -23,6 +23,7 @@ import java.io.IOException
 import java.util.*
 
 class CobblemonBroadcaster : ModInitializer {
+	val MOD_PREFIX: String = "<red><bold>[<gradient:#FF416C:#FF4B2B><bold>TᴜᴛᴏʀMᴏᴠᴇꜱ</gradient><red><bold>]&f "
 	private var server: MinecraftServer? = null
 
 	override fun onInitialize() {
@@ -131,11 +132,16 @@ class CobblemonBroadcaster : ModInitializer {
 	}
 
 	/**
-	 * / **
+	 *
 	 * Displays an ASCII Art representation of the mod's name in the log.
 	 */
 	private fun displayAsciiArt() {
-		LOGGER.info("CobblemonBroadcasters Loaded Successfully");
+		LOGGER.info("\u001B[0;31m  ____ ____                      _               _            \u001B[0m")
+		LOGGER.info("\u001B[0;31m / ___| __ ) _ __ ___   __ _  __| | ___ __ _ ___| |_ ___ _ __ \u001B[0m")
+		LOGGER.info("\u001B[0;31m| |   |  _ \\| '__/ _ \\ / _` |/ _` |/ __/ _` / __| __/ _ \\ '__|\u001B[0m")
+		LOGGER.info("\u001B[0;31m| |___| |_) | | | (_) | (_| | (_| | (_| (_| \\__ \\ ||  __/ |   \u001B[0m")
+		LOGGER.info("\u001B[0;31m \\____|____/|_|  \\___/ \\__,_|\\__,_|\\___\\__,_|___/\\__\\___|_|   \u001B[0m")
+		LOGGER.info("\u001B[0;31m  By Novoro: https://discord.gg/wzpp8jeJ9s                     \u001B[0m")
 	}
 
 	private fun registerEventListeners() {

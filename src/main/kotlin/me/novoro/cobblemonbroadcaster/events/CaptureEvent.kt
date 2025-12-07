@@ -25,27 +25,29 @@ class CaptureEvent(private val config: Configuration) {
             }
 
             // Debugging: Log all aspects of the Pokémon
-            val aspects = AspectProvider.providers.flatMap { it.provide(pokemon) }
             //SimpleLogger.debug("Pokemon ${pokemon.species.name} has aspects: $aspects")
+            val aspectsAndLabels = mutableSetOf<String>()
+            aspectsAndLabels.addAll(AspectProvider.providers.flatMap {it.provide(pokemon)})
+            aspectsAndLabels.addAll(pokemon.species.labels)
 
             // Dynamically check user-defined aspects first
             config.keys.forEach { customCategory ->
                 if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
-                    if (customCategory in aspects) {
-                        if (handlePokemonCategory(pokemon, player, customCategory) { true }) return@subscribe
+                    if (customCategory in aspectsAndLabels) {
+                        if (handleCategory(pokemon, player, customCategory) { true }) return@subscribe
                     }
                 }
             }
 
             // Check categories with guard clauses in priority order
-            if (handlePokemonCategory(pokemon, player, "mythical") { pokemon.isMythical() }) return@subscribe
-            if (handlePokemonCategory(pokemon, player, "legendary") { pokemon.isLegendary() }) return@subscribe
-            if (handlePokemonCategory(pokemon, player, "ultrabeast") { pokemon.isUltraBeast() }) return@subscribe
-            if (handlePokemonCategory(pokemon, player, "shiny") { pokemon.shiny }) return@subscribe
+            if (handleCategory(pokemon, player, "mythical") { pokemon.isMythical() }) return@subscribe
+            if (handleCategory(pokemon, player, "legendary") { pokemon.isLegendary() }) return@subscribe
+            if (handleCategory(pokemon, player, "ultrabeast") { pokemon.isUltraBeast() }) return@subscribe
+            if (handleCategory(pokemon, player, "shiny") { pokemon.shiny }) return@subscribe
         }
     }
 
-    private fun handlePokemonCategory(
+    private fun handleCategory(
         pokemon: Pokemon,
         player: ServerPlayerEntity,
         category: String,
@@ -64,12 +66,10 @@ class CaptureEvent(private val config: Configuration) {
             "player" to player.name.string
         )
 
-        // Send the message to all players
         player.server?.playerManager?.playerList?.forEach { targetPlayer ->
             LangManager.send(targetPlayer as ServerPlayerEntity, langKey, replacements)
         }
 
-        // Return true to indicate the category was handled
         return true
     }
 }

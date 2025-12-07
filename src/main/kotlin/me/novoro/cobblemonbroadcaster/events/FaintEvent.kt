@@ -9,7 +9,7 @@ import net.minecraft.server.MinecraftServer
 
 class FaintEvent(private val config: Configuration, private val server: MinecraftServer) {
 
-    private val faintedPokemonCache = mutableSetOf<String>() // Cache to avoid duplicate announcements
+    private val faintedPokemonCache = mutableSetOf<String>()
 
     init {
         CobblemonEvents.BATTLE_FAINTED.subscribe(priority = Priority.LOWEST) { event ->
@@ -26,30 +26,31 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
             val isBoss = nbt.getBoolean("boss")
             if (isBoss) return@subscribe
 
-            val aspects = AspectProvider.providers.flatMap { it.provide(pokemon) }
+            val aspectsAndLabels = mutableSetOf<String>()
+            aspectsAndLabels.addAll(AspectProvider.providers.flatMap {it.provide(pokemon)})
+            aspectsAndLabels.addAll(pokemon.species.labels)
             //SimpleLogger.debug("Pokemon ${pokemon.species.name} has aspects: $aspects")
 
             // Dynamically check user-defined aspects first
             config.keys.forEach { customCategory ->
                 if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
-                    if (customCategory in aspects) {
-                        if (handlePokemonCategory(pokemon, customCategory) { true }) return@subscribe
+                    if (customCategory in aspectsAndLabels) {
+                        if (handleCategory(pokemon, customCategory) { true }) return@subscribe
                     }
                 }
             }
 
             // Check categories with guard clauses in priority order
-            if (handlePokemonCategory(pokemon, "mythical") { pokemon.isMythical() }) return@subscribe
-            if (handlePokemonCategory(pokemon, "legendary") { pokemon.isLegendary() }) return@subscribe
-            if (handlePokemonCategory(pokemon, "ultrabeast") { pokemon.isUltraBeast() }) return@subscribe
-            if (handlePokemonCategory(pokemon, "shiny") { pokemon.shiny }) return@subscribe
+            if (handleCategory(pokemon, "mythical") { pokemon.isMythical() }) return@subscribe
+            if (handleCategory(pokemon, "legendary") { pokemon.isLegendary() }) return@subscribe
+            if (handleCategory(pokemon, "ultrabeast") { pokemon.isUltraBeast() }) return@subscribe
+            if (handleCategory(pokemon, "shiny") { pokemon.shiny }) return@subscribe
 
-            // Add the Pokémon to the cache
             faintedPokemonCache.add(pokemon.uuid.toString())
         }
     }
 
-    private fun handlePokemonCategory(
+    private fun handleCategory(
         pokemon: com.cobblemon.mod.common.pokemon.Pokemon,
         category: String,
         condition: () -> Boolean
@@ -66,12 +67,10 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
             "pokemon" to pokemon.species.name
         )
 
-        // Send the message to all online players
         server.playerManager.playerList.forEach { player ->
             LangManager.send(player, langKey, replacements)
         }
 
-        // Return true to indicate the category was handled
         return true
     }
 }
