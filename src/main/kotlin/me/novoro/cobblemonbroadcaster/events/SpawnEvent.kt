@@ -5,21 +5,40 @@ import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
 import me.novoro.cobblemonbroadcaster.util.LangManager
+import me.novoro.cobblemonbroadcaster.util.LabelHelper
+import me.novoro.cobblemonbroadcaster.util.SimpleLogger
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.util.math.BlockPos;
 
 class SpawnEvent(private val config: Configuration) {
 
+    //TODO Add Gender Placeholders ♂, ♀, ⚲
+    //TODO Add Multiple Spec-Support (Shiny Legendary, Legendary Galarian, etc.)
+    //TODO Make Labels and Aspects work together
+
     init {
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(priority = Priority.LOWEST) { event ->
-            //val aspects = AspectProvider.providers.flatMap { it.provide(pokemonEntity.pokemon) }
-            //val labels = pokemonEntity.pokemon.species.labels
 
+            // Aspect and Label
             val pokemonEntity = event.entity
             val aspectsAndLabels = mutableSetOf<String>()
-            aspectsAndLabels.addAll(AspectProvider.providers.flatMap {it.provide(pokemonEntity.pokemon)})
-            aspectsAndLabels.addAll(pokemonEntity.pokemon.species.labels)
 
+            // Aspects (Gender, Shiny, etc.)
+            aspectsAndLabels.addAll(
+                AspectProvider.providers.flatMap { it.provide(pokemonEntity.pokemon) }
+            )
+
+            // Labels (Legendary, Mythical, Paradox, Kantonian, Baby, etc.)
+            aspectsAndLabels.addAll(
+                LabelHelper.filterValidLabels(pokemonEntity.pokemon.species.labels)
+            )
+
+            // Spawner + Spawner Name (WTF IS A POKESNACK!!!)
+            val spawnerType = event.spawnablePosition.spawner
+            val spawnerName = spawnerType.name
+            val pos = event.spawnablePosition.position
+            val isSnack = spawnerName.startsWith("poke_snack")
 
             // Blacklist Stuff
             val world = event.entity.world as? ServerWorld
@@ -28,21 +47,23 @@ class SpawnEvent(private val config: Configuration) {
                 return@subscribe
             }
 
+            // Priority
+            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "shiny", pos, isSnack) { pokemonEntity.pokemon.shiny }) return@subscribe
+
             // Debugging: Log all aspects of the Pokémon
-            //SimpleLogger.debug("Pokemon ${pokemonEntity.pokemon.species.name} has aspects: $aspects")
+            SimpleLogger.debug("Pokemon ${pokemonEntity.pokemon.species.name} has aspects: $aspectsAndLabels")
 
             // Dynamically check user-defined aspects
             config.keys.forEach { customCategory ->
                 if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
                     if (customCategory in aspectsAndLabels) {
-                        if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, customCategory) { true }) return@subscribe
+                        if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, customCategory, pos, isSnack) { true }) return@subscribe
                     }
                 }
             }
 
-            // Default categories
             for (category in aspectsAndLabels) {
-                if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, category) {
+                if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, category, pos, isSnack) {
                     true
                 }) {
                     return@subscribe
@@ -55,19 +76,25 @@ class SpawnEvent(private val config: Configuration) {
         pokemonEntity: com.cobblemon.mod.common.entity.pokemon.PokemonEntity,
         spawnerName: String,
         category: String,
+        spawnPos: BlockPos,
+        isSnack: Boolean,
         condition: () -> Boolean
     ): Boolean {
-        if (!condition()) {
-            return false
-        }
+
+        if (!condition()) return false
 
         val isEnabled = config.getBoolean("$category.enabled", true)
         if (!isEnabled) return false
 
-        val langKey = "$category.SpawnMessage"
+        val langKey = if (isSnack) "$category.SpawnMessage-Snack"
+        else "$category.SpawnMessage"
+
         val replacements = mapOf(
             "pokemon" to pokemonEntity.pokemon.species.name,
-            "player" to spawnerName
+            "player" to spawnerName,
+            "x" to spawnPos.x.toString(),
+            "y" to spawnPos.y.toString(),
+            "z" to spawnPos.z.toString()
         )
 
         // Send the message to all players
@@ -77,4 +104,5 @@ class SpawnEvent(private val config: Configuration) {
 
         return true
     }
+
 }

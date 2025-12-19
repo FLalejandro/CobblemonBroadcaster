@@ -9,7 +9,6 @@ import net.minecraft.server.command.CommandManager
 import net.minecraft.server.command.ServerCommandSource
 
 object BroadcastCommands {
-    // Permission node for the `/cobblemonbroadcaster reload` command
     const val RELOAD_PERMISSION_NODE: String = "cobblemonbroadcaster.reload"
 
     /**
