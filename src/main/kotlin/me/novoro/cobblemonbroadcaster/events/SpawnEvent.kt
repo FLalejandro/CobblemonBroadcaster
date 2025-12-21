@@ -5,6 +5,7 @@ import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
+import com.cobblemon.mod.common.pokemon.Gender
 import me.novoro.cobblemonbroadcaster.util.LangManager
 import me.novoro.cobblemonbroadcaster.util.LabelHelper
 import me.novoro.cobblemonbroadcaster.util.SimpleLogger
@@ -104,10 +105,11 @@ class SpawnEvent(private val config: Configuration) {
     }
 
     private fun genderReplacements(pokemonEntity: PokemonEntity): String {
-        var gender = "⚲"
-        if (pokemonEntity.pokemon.gender.toString() == "male") gender = "♂"
-        else if (pokemonEntity.pokemon.gender.toString() == "female") gender = "♂"
-        return gender;
+        return when (pokemonEntity.pokemon.gender) {
+            Gender.MALE -> "♂"
+            Gender.FEMALE -> "♀"
+            Gender.GENDERLESS -> "⚲"
+            else -> "⚲"
+        }
     }
-
 }
