@@ -3,7 +3,9 @@ package me.novoro.cobblemonbroadcaster.events
 import me.novoro.cobblemonbroadcaster.config.Configuration
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
+import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
 import com.cobblemon.mod.common.pokemon.Pokemon
 import me.novoro.cobblemonbroadcaster.util.LangManager
 import net.minecraft.server.network.ServerPlayerEntity
@@ -11,8 +13,14 @@ import net.minecraft.server.world.ServerWorld
 
 class CaptureEvent(private val config: Configuration) {
 
+    private var captureEvent: ObservableSubscription<PokemonCapturedEvent>? = null
+
+    fun unsubscribe() {
+        captureEvent?.unsubscribe()
+    }
+
     init {
-        CobblemonEvents.POKEMON_CAPTURED.subscribe(priority = Priority.LOWEST) { event ->
+        captureEvent = CobblemonEvents.POKEMON_CAPTURED.subscribe(priority = Priority.LOWEST) { event ->
 
             val pokemon = event.pokemon
             val player = event.player

@@ -23,7 +23,6 @@ import java.io.IOException
 import java.util.*
 
 class CobblemonBroadcaster : ModInitializer {
-	val MOD_PREFIX: String = "<red><bold>[<gradient:#FF416C:#FF4B2B><bold>TᴜᴛᴏʀMᴏᴠᴇꜱ</gradient><red><bold>]&f "
 
 	override fun onInitialize() {
 		displayAsciiArt()
@@ -149,9 +148,9 @@ class CobblemonBroadcaster : ModInitializer {
 		// i hate kotlin and refuse to learn it
 		private fun registerEventListeners() {
 			if (mainConfig != null && serverInstance != null) {
-				spawnEvent = null
-				faintEvent = null
-				captureEvent = null
+				spawnEvent?.unsubscribe()
+				faintEvent?.unsubscribe()
+				captureEvent?.unsubscribe()
 				spawnEvent = SpawnEvent(mainConfig!!)
 				faintEvent = FaintEvent(mainConfig!!, serverInstance!!)
 				captureEvent = CaptureEvent(mainConfig!!)

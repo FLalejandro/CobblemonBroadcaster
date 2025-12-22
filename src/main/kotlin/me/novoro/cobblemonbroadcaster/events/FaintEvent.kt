@@ -2,7 +2,9 @@ package me.novoro.cobblemonbroadcaster.events
 
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
+import com.cobblemon.mod.common.api.events.battles.BattleFaintedEvent
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
 import me.novoro.cobblemonbroadcaster.config.Configuration
 import me.novoro.cobblemonbroadcaster.util.LangManager
 import net.minecraft.server.MinecraftServer
@@ -11,9 +13,14 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
 
     // Cache to avoid duplicate announcements
     private val faintedPokemonCache = mutableSetOf<String>()
+    private var faintEvent: ObservableSubscription<BattleFaintedEvent>? = null
+
+    fun unsubscribe() {
+        faintEvent?.unsubscribe()
+    }
 
     init {
-        CobblemonEvents.BATTLE_FAINTED.subscribe(priority = Priority.LOWEST) { event ->
+        faintEvent = CobblemonEvents.BATTLE_FAINTED.subscribe(priority = Priority.LOWEST) { event ->
 
             val pokemon = event.killed.effectedPokemon
             val player = event.killed.actor.getName()
