@@ -3,7 +3,9 @@ package me.novoro.cobblemonbroadcaster.events
 import me.novoro.cobblemonbroadcaster.config.Configuration
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
+import com.cobblemon.mod.common.api.events.entity.SpawnEvent
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
+import com.cobblemon.mod.common.api.reactive.ObservableSubscription
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
 import me.novoro.cobblemonbroadcaster.util.LangManager
 import me.novoro.cobblemonbroadcaster.util.LabelHelper
@@ -21,9 +23,14 @@ class SpawnEvent(private val config: Configuration) {
     //TODO Add Multiple Spec-Support (Shiny Legendary, Legendary Galarian, etc.)
     //TODO Option to send it to player it spawns on vs Global
     //TODO Load Keys in when reload
+    var spawnEvent: ObservableSubscription<SpawnEvent<PokemonEntity>>? = null
+
+    fun unsubscribe() {
+        spawnEvent?.unsubscribe()
+    }
 
     init {
-        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(priority = Priority.LOWEST) { event ->
+        spawnEvent = CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(priority = Priority.LOWEST) { event ->
 
             val pokemonEntity = event.entity
 
