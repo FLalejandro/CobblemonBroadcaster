@@ -4,6 +4,7 @@ import me.novoro.cobblemonbroadcaster.commands.BroadcastCommands
 import me.novoro.cobblemonbroadcaster.config.Configuration
 import me.novoro.cobblemonbroadcaster.config.YamlConfiguration
 import me.novoro.cobblemonbroadcaster.events.CaptureEvent
+import me.novoro.cobblemonbroadcaster.events.FaintEvent
 import me.novoro.cobblemonbroadcaster.events.SpawnEvent
 import me.novoro.cobblemonbroadcaster.util.LangManager
 import net.fabricmc.api.ModInitializer
@@ -23,23 +24,13 @@ import java.util.*
 
 class CobblemonBroadcaster : ModInitializer {
 	val MOD_PREFIX: String = "<red><bold>[<gradient:#FF416C:#FF4B2B><bold>TᴜᴛᴏʀMᴏᴠᴇꜱ</gradient><red><bold>]&f "
-	private var server: MinecraftServer? = null
 
 	override fun onInitialize() {
-		// novoro signature ;)
 		displayAsciiArt()
-
-		// Initialize configuration
 		this.configManager()
-		// Load language entries into LangManager
 		LangManager.loadConfig(mainConfig)
-
-		// Register all the commands available in the mod.
 		registerCommands()
-
-		// Defer event registration until the server is fully started
 		registerServerLifecycleListeners()
-
 	}
 
 	/**
@@ -54,7 +45,7 @@ class CobblemonBroadcaster : ModInitializer {
 	private fun registerServerLifecycleListeners() {
 		// Capture server instance and register events
 		ServerLifecycleEvents.SERVER_STARTED.register { minecraftServer ->
-			server = minecraftServer
+			serverInstance = minecraftServer
 			setupPermissions()
 
 			// Register events that require the server instance
@@ -138,27 +129,15 @@ class CobblemonBroadcaster : ModInitializer {
 		LOGGER.info("\u001B[0;31m  By Novoro: https://discord.gg/wzpp8jeJ9s                     \u001B[0m")
 	}
 
-	private fun registerEventListeners() {
-		if (mainConfig != null && server != null) {
-			SpawnEvent(mainConfig!!)
-			me.novoro.cobblemonbroadcaster.events.FaintEvent(mainConfig!!, server!!)
-			CaptureEvent(mainConfig!!)
-		} else {
-			LOGGER.error("Failed to register events: mainConfig or server is null.")
-		}
-		LOGGER.info("Event listeners registered!")
-	}
-
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger("CobblemonBroadcaster")
 		// For each player's UUID, store the last time they joined (in ms).
 		val playerLoginTimes = mutableMapOf<UUID, Long>()
 		private var mainConfig: Configuration? = null
 		private var serverInstance: MinecraftServer? = null
-
-		fun getMainConfig(): Configuration? {
-			return mainConfig
-		}
+		private var spawnEvent: SpawnEvent? = null
+		private var faintEvent: FaintEvent? = null
+		private var captureEvent: CaptureEvent? = null
 
 		val configFolder: File
 			get() {
@@ -166,6 +145,21 @@ class CobblemonBroadcaster : ModInitializer {
 				if (!configFolder.exists()) configFolder.mkdirs()
 				return configFolder
 			}
+
+		// i hate kotlin and refuse to learn it
+		private fun registerEventListeners() {
+			if (mainConfig != null && serverInstance != null) {
+				spawnEvent = null
+				faintEvent = null
+				captureEvent = null
+				spawnEvent = SpawnEvent(mainConfig!!)
+				faintEvent = FaintEvent(mainConfig!!, serverInstance!!)
+				captureEvent = CaptureEvent(mainConfig!!)
+			} else {
+				LOGGER.error("Failed to register events: mainConfig or server is null.")
+			}
+			LOGGER.info("Event listeners registered!")
+		}
 
 		/**
 		 * Reloads configurations from the config file.
@@ -176,6 +170,7 @@ class CobblemonBroadcaster : ModInitializer {
 					CobblemonBroadcaster().getOrCreateConfigurationFile("config.yml")
 				)
 				LangManager.loadConfig(mainConfig)
+				registerEventListeners()
 				LOGGER.info("Cobblemon Broadcaster configuration reloaded successfully.")
 				val worldBlacklistConfig = YamlConfiguration.loadConfiguration(CobblemonBroadcaster().getOrCreateConfigurationFile("world-blacklist.yml"))
 				me.novoro.cobblemonbroadcaster.util.BlacklistedWorlds.load(worldBlacklistConfig)

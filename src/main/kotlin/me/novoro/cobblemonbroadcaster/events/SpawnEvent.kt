@@ -96,13 +96,26 @@ class SpawnEvent(private val config: Configuration) {
             "x" to spawnPos.x.toString(),
             "y" to spawnPos.y.toString(),
             "z" to spawnPos.z.toString(),
-            "dimension" to PlaceholderUtils.getWorldName(pokemonEntity.world as ServerWorld),
+            "dimension" to PlaceholderUtils.getWorldName(world),
             "biome" to PlaceholderUtils.getBiomeTranslatable(biomeId)
         )
 
-        // Send the message to all players
-        pokemonEntity.server?.playerManager?.playerList?.forEach { player ->
-            LangManager.send(player as ServerPlayerEntity, langKey, replacements)
+        val isGlobalAlert = config.getBoolean("$category.Global-Alert", true)
+
+        // Send message based on broadcast setting
+        if (isGlobalAlert || isSnack) {
+            pokemonEntity.server?.playerManager?.playerList?.forEach { player ->
+                LangManager.send(player as ServerPlayerEntity, langKey, replacements)
+            }
+        }
+        else {
+            val targetPlayer = pokemonEntity.server?.playerManager?.playerList?.find { player ->
+                player.name.string.equals(spawnerName, ignoreCase = true)
+            }
+
+            targetPlayer?.let {
+                LangManager.send(it, langKey, replacements)
+            }
         }
 
         return true

@@ -1,12 +1,10 @@
 package me.novoro.cobblemonbroadcaster.events
 
-import me.novoro.cobblemonbroadcaster.config.Configuration
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
-import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
+import me.novoro.cobblemonbroadcaster.config.Configuration
 import me.novoro.cobblemonbroadcaster.util.LangManager
-import me.novoro.cobblemonbroadcaster.util.PlaceholderUtils
 import net.minecraft.server.MinecraftServer
 
 class FaintEvent(private val config: Configuration, private val server: MinecraftServer) {
@@ -18,6 +16,7 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
         CobblemonEvents.BATTLE_FAINTED.subscribe(priority = Priority.LOWEST) { event ->
 
             val pokemon = event.killed.effectedPokemon
+            val player = event.killed.actor.getName()
 
             // Ensure the Pokémon is wild and not already processed
             // why tf does isNPCOwned() get ignored if not accompanied with !isWild()!!!
@@ -36,16 +35,16 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
             config.keys.forEach { customCategory ->
                 if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
                     if (customCategory in aspects) {
-                        if (handlePokemonCategory(pokemon, customCategory) { true }) return@subscribe
+                        if (handlePokemonCategory(pokemon, player.toString(),customCategory) { true }) return@subscribe
                     }
                 }
             }
 
             // Check categories with guard clauses in priority order
-            if (handlePokemonCategory(pokemon, "mythical") { pokemon.isMythical() }) return@subscribe
-            if (handlePokemonCategory(pokemon, "legendary") { pokemon.isLegendary() }) return@subscribe
-            if (handlePokemonCategory(pokemon, "ultrabeast") { pokemon.isUltraBeast() }) return@subscribe
-            if (handlePokemonCategory(pokemon, "shiny") { pokemon.shiny }) return@subscribe
+            if (handlePokemonCategory(pokemon, player.toString(), "mythical") { pokemon.isMythical() }) return@subscribe
+            if (handlePokemonCategory(pokemon, player.toString(),"legendary") { pokemon.isLegendary() }) return@subscribe
+            if (handlePokemonCategory(pokemon, player.toString(),"ultrabeast") { pokemon.isUltraBeast() }) return@subscribe
+            if (handlePokemonCategory(pokemon, player.toString(),"shiny") { pokemon.shiny }) return@subscribe
 
             // Add the Pokémon to the cache
             faintedPokemonCache.add(pokemon.uuid.toString())
@@ -54,6 +53,7 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
 
     private fun handlePokemonCategory(
         pokemon: com.cobblemon.mod.common.pokemon.Pokemon,
+        playerName: String?,
         category: String,
         condition: () -> Boolean
     ): Boolean {
@@ -66,12 +66,18 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
             "pokemon" to pokemon.species.name
         )
 
-        // Send the message to all online players
-        server.playerManager.playerList.forEach { player ->
-            LangManager.send(player, langKey, replacements)
+        val isGlobalAlert = config.getBoolean("$category.Global-Alert", true)
+
+        if (isGlobalAlert) {
+            server.playerManager.playerList.forEach { player ->
+                LangManager.send(player, langKey, replacements)
+            }
+        } else if (playerName != null) {
+            server.playerManager.playerList
+                .find { it.name.string.equals(playerName, ignoreCase = true) }
+                ?.let { LangManager.send(it, langKey, replacements) }
         }
 
-        // Return true to indicate the category was handled
         return true
     }
 }

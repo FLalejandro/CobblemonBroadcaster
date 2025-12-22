@@ -66,9 +66,15 @@ class CaptureEvent(private val config: Configuration) {
             "player" to player.name.string
         )
 
-        player.server?.playerManager?.playerList?.forEach { targetPlayer ->
-            LangManager.send(targetPlayer as ServerPlayerEntity, langKey, replacements)
+        val isGlobalAlert = config.getBoolean("$category.Global-Alert", true)
+
+        // Send message based on broadcast setting
+        if (isGlobalAlert) {
+            player.server?.playerManager?.playerList?.forEach { targetPlayer ->
+                LangManager.send(targetPlayer as ServerPlayerEntity, langKey, replacements)
+            }
         }
+        else LangManager.send(player, langKey, replacements)
 
         return true
     }
