@@ -1,5 +1,7 @@
 package me.novoro.cobblemonbroadcaster.util
 
+import net.fabricmc.loader.api.FabricLoader
+
 object SimpleLogger {
     fun info(message: String) {
         println("[INFO] $message")
@@ -15,6 +17,6 @@ object SimpleLogger {
     }
 
     fun debug(message: String) {
-        println("[DEBUG] $message")
+        if (FabricLoader.getInstance().isDevelopmentEnvironment) println("[DEBUG] $message")
     }
 }
