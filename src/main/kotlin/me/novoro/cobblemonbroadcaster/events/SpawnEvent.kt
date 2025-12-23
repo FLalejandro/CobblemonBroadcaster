@@ -3,9 +3,11 @@ package me.novoro.cobblemonbroadcaster.events
 import me.novoro.cobblemonbroadcaster.config.Configuration
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
+import com.cobblemon.mod.common.api.events.cooking.PokeSnackSpawnPokemonEvent
 import com.cobblemon.mod.common.api.events.entity.SpawnEvent
 import com.cobblemon.mod.common.api.pokemon.aspect.AspectProvider
 import com.cobblemon.mod.common.api.reactive.ObservableSubscription
+import com.cobblemon.mod.common.api.spawning.position.SpawnablePosition
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
 import me.novoro.cobblemonbroadcaster.util.LangManager
 import me.novoro.cobblemonbroadcaster.util.LabelHelper
@@ -24,56 +26,58 @@ class SpawnEvent(private val config: Configuration) {
     //TODO Option to send it to player it spawns on vs Global
     //TODO Load Keys in when reload
     var spawnEvent: ObservableSubscription<SpawnEvent<PokemonEntity>>? = null
+    var snackSpawnEvent: ObservableSubscription<PokeSnackSpawnPokemonEvent.Post>? = null
 
     fun unsubscribe() {
         spawnEvent?.unsubscribe()
+        snackSpawnEvent?.unsubscribe()
     }
 
     init {
         spawnEvent = CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(priority = Priority.LOWEST) { event ->
+            // Ignore PokéSnacks - They don't have any aspects influenced by the snack in this event
+            if (event.spawnablePosition.spawner.name.startsWith("poke_snack")) return@subscribe
 
-            val pokemonEntity = event.entity
+            handleSpawn(event.entity, event.spawnablePosition)
+        }
+        snackSpawnEvent = CobblemonEvents.POKE_SNACK_SPAWN_POKEMON_POST.subscribe(priority = Priority.LOWEST) { event ->
+            handleSpawn(event.pokemonEntity, event.spawnAction.spawnablePosition, true)
+        }
+    }
 
-            // Aspects and Labels
-            val aspects = AspectProvider.providers.flatMap { it.provide(pokemonEntity.pokemon) }
-            val labels = pokemonEntity.pokemon.species.labels
-            val allIdentifiers = mutableSetOf<String>()
-            allIdentifiers.addAll(aspects)
+    private fun handleSpawn(pokemonEntity: PokemonEntity, spawnablePosition: SpawnablePosition, isSnack: Boolean = false) {
+        // Blacklist Stuff
+        val world = pokemonEntity.world as? ServerWorld
+        val worldName = world?.registryKey?.value.toString()
+        if (BlacklistedWorlds.isBlacklisted(worldName)) return
 
-            val label = LabelHelper.filterValidLabels(labels.map { it.toString()})
-            allIdentifiers.addAll(label)
+        // Aspects and Labels
+        val aspects = AspectProvider.providers.flatMap { it.provide(pokemonEntity.pokemon) }
+        val labels = pokemonEntity.pokemon.species.labels
+        val allIdentifiers = mutableSetOf<String>()
+        allIdentifiers.addAll(aspects)
 
-            // Spawner + Spawner Name (WTF IS A POKESNACK!!!)
-            val spawnerType = event.spawnablePosition.spawner
-            val spawnerName = spawnerType.name
-            val pos = event.spawnablePosition.position
-            val isSnack = spawnerName.startsWith("poke_snack")
+        val label = LabelHelper.filterValidLabels(labels.map { it })
+        allIdentifiers.addAll(label)
 
-            // Blacklist Stuff
-            val world = event.entity.world as? ServerWorld
-            val worldName = world?.registryKey?.value.toString()
-            if (BlacklistedWorlds.isBlacklisted(worldName)) {
-                return@subscribe
-            }
+        val pos = spawnablePosition.position
 
+        // Debugging: Log all aspects of the Pokémon
+        SimpleLogger.debug("Pokemon ${pokemonEntity.pokemon.species.name} spawned by ${spawnablePosition.spawner.name} has aspects: $aspects, labels: $label")
 
-            // Debugging: Log all aspects of the Pokémon
-            SimpleLogger.debug("Pokemon ${pokemonEntity.pokemon.species.name} has aspects: $aspects, labels: $label")
-
-            // Dynamically check user-defined identifiers (aspects AND labels)
-            config.keys.forEach { customCategory ->
-                if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
-                    if (customCategory in allIdentifiers) {
-                        if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, customCategory, pos, isSnack) { true }) return@subscribe
-                    }
+        // Dynamically check user-defined identifiers (aspects AND labels)
+        config.keys.forEach { customCategory ->
+            if (customCategory !in setOf("shiny", "legendary", "mythical", "ultrabeast")) {
+                if (customCategory in allIdentifiers) {
+                    if (handleCategory(pokemonEntity, spawnablePosition.spawner.name, customCategory, pos, isSnack) { true }) return
                 }
             }
-
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "mythical", pos, isSnack) { pokemonEntity.pokemon.isMythical() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "legendary", pos, isSnack) { pokemonEntity.pokemon.isLegendary() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "ultrabeast", pos, isSnack) { pokemonEntity.pokemon.isUltraBeast() }) return@subscribe
-            if (handleCategory(pokemonEntity, event.spawnablePosition.spawner.name, "shiny", pos, isSnack) { pokemonEntity.pokemon.shiny }) return@subscribe
         }
+
+        if (handleCategory(pokemonEntity, spawnablePosition.spawner.name, "mythical", pos, isSnack) { pokemonEntity.pokemon.isMythical() }) return
+        if (handleCategory(pokemonEntity, spawnablePosition.spawner.name, "legendary", pos, isSnack) { pokemonEntity.pokemon.isLegendary() }) return
+        if (handleCategory(pokemonEntity, spawnablePosition.spawner.name, "ultrabeast", pos, isSnack) { pokemonEntity.pokemon.isUltraBeast() }) return
+        if (handleCategory(pokemonEntity, spawnablePosition.spawner.name, "shiny", pos, isSnack) { pokemonEntity.pokemon.shiny }) return
     }
 
     private fun handleCategory(
