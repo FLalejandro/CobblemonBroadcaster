@@ -7,7 +7,6 @@ import me.novoro.cobblemonbroadcaster.events.CaptureEvent
 import me.novoro.cobblemonbroadcaster.events.FaintEvent
 import me.novoro.cobblemonbroadcaster.events.SpawnEvent
 import me.novoro.cobblemonbroadcaster.util.LangManager
-import me.novoro.cobblemonbroadcaster.util.LuckPerms
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
@@ -45,7 +44,6 @@ class CobblemonBroadcaster : ModInitializer {
 		// Capture server instance and register events
 		ServerLifecycleEvents.SERVER_STARTED.register { minecraftServer ->
 			serverInstance = minecraftServer
-			setupPermissions()
 
 			// Register events that require the server instance
 			registerEventListeners()
@@ -55,18 +53,6 @@ class CobblemonBroadcaster : ModInitializer {
 		ServerPlayConnectionEvents.JOIN.register { handler: ServerPlayNetworkHandler, _, _ ->
 			val player = handler.player
 			playerLoginTimes[player.uuid] = System.currentTimeMillis()
-		}
-	}
-
-	/**
-	 * Initialize and setup permissions using the LuckPerms API.
-	 * This method ensures the permissions system is active and running.
-	 */
-	private fun setupPermissions() {
-		if (FabricLoader.getInstance().isModLoaded("LuckPerms")) {
-			LuckPerms
-		} else {
-			LOGGER.info("Using Fabric-Permissions API")
 		}
 	}
 
