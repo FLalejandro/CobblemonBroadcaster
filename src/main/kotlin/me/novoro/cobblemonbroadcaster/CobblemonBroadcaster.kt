@@ -1,10 +1,12 @@
 package me.novoro.cobblemonbroadcaster
 
+import com.cobblemon.mod.common.api.events.pokemon.FossilRevivedEvent
 import me.novoro.cobblemonbroadcaster.commands.BroadcastCommands
 import me.novoro.cobblemonbroadcaster.config.Configuration
 import me.novoro.cobblemonbroadcaster.config.YamlConfiguration
 import me.novoro.cobblemonbroadcaster.events.CaptureEvent
 import me.novoro.cobblemonbroadcaster.events.FaintEvent
+import me.novoro.cobblemonbroadcaster.events.FossilEvent
 import me.novoro.cobblemonbroadcaster.events.SpawnEvent
 import me.novoro.cobblemonbroadcaster.util.LangManager
 import me.novoro.cobblemonbroadcaster.util.Permissions
@@ -112,6 +114,7 @@ class CobblemonBroadcaster : ModInitializer {
 		private var spawnEvent: SpawnEvent? = null
 		private var faintEvent: FaintEvent? = null
 		private var captureEvent: CaptureEvent? = null
+        private var fossilEvent: FossilEvent? = null
 
 		val configFolder: File
 			get() {
@@ -126,9 +129,11 @@ class CobblemonBroadcaster : ModInitializer {
 				spawnEvent?.unsubscribe()
 				faintEvent?.unsubscribe()
 				captureEvent?.unsubscribe()
+                fossilEvent?.unsubscribe()
 				spawnEvent = SpawnEvent(mainConfig!!)
 				faintEvent = FaintEvent(mainConfig!!, serverInstance!!)
 				captureEvent = CaptureEvent(mainConfig!!)
+                fossilEvent = FossilEvent(mainConfig!!)
 			} else {
 				LOGGER.error("Failed to register events: mainConfig or server is null.")
 			}
