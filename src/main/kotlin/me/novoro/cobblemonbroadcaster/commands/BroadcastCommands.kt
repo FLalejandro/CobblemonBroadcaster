@@ -4,7 +4,7 @@ import me.novoro.cobblemonbroadcaster.CobblemonBroadcaster
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.context.CommandContext
-import me.lucko.fabric.api.permissions.v0.Permissions
+import me.novoro.cobblemonbroadcaster.util.Permissions
 import net.minecraft.server.command.CommandManager
 import net.minecraft.server.command.ServerCommandSource
 
@@ -20,7 +20,7 @@ object BroadcastCommands {
         dispatcher.register(
             CommandManager.literal("cobblemonbroadcaster")
                 .then(CommandManager.literal("reload")
-                    .requires(Permissions.require(RELOAD_PERMISSION_NODE, 2))
+                    .requires { src -> Permissions.has(src, RELOAD_PERMISSION_NODE, 2) }
                     .executes { ctx -> reloadConfigs(ctx) }
                 )
         )

@@ -27,20 +27,21 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
         faintEvent = CobblemonEvents.BATTLE_FAINTED.subscribe(priority = Priority.LOWEST) { event ->
 
             val pokemon = event.killed.effectedPokemon
-            val player = event.killed.actor.getName()
-
-            // Blacklist Stuff
-            // How tf do I get the world from a pokemon battle properly, a killed entity may not always exist
-            val world = server.playerManager.getPlayer(player.string)?.world as? ServerWorld
-            val worldName = world?.registryKey?.value.toString()
-            if (BlacklistedWorlds.isBlacklisted(worldName)) {
-                return@subscribe
-            }
 
             // Ensure the Pokémon is wild and not already processed
             // why tf does isNPCOwned() get ignored if not accompanied with !isWild()!!!
             if (pokemon.isPlayerOwned() || pokemon.isNPCOwned() || !pokemon.isWild()) return@subscribe
             if (faintedPokemonCache.contains(pokemon.uuid.toString())) return@subscribe
+
+            // Actually check for the player(s), and not the Pokémon...
+            val player = event.battle.players.firstOrNull() ?: return@subscribe
+
+            // Blacklist Stuff
+            val world = player?.world as? ServerWorld
+            val worldName = world?.registryKey?.value.toString()
+            if (BlacklistedWorlds.isBlacklisted(worldName)) {
+                return@subscribe
+            }
 
             // Check if the Pokémon is a boss (if applicable). Love u Guitar pookie
             val nbt = pokemon.persistentData
@@ -53,7 +54,7 @@ class FaintEvent(private val config: Configuration, private val server: Minecraf
             allIdentifiers.addAll(aspects)
             allIdentifiers.addAll(labels)
 
-            SimpleLogger.debug("Pokemon ${pokemon.species.name} killed by ${player.string} has aspects: $aspects, labels: $labels")
+            SimpleLogger.debug("Pokemon ${pokemon.species.name} killed by ${player.name.string} has aspects: $aspects, labels: $labels")
 
             // Dynamically check user-defined aspects first
             config.keys.forEach { customCategory ->

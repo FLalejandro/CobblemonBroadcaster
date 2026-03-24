@@ -7,6 +7,7 @@ import me.novoro.cobblemonbroadcaster.events.CaptureEvent
 import me.novoro.cobblemonbroadcaster.events.FaintEvent
 import me.novoro.cobblemonbroadcaster.events.SpawnEvent
 import me.novoro.cobblemonbroadcaster.util.LangManager
+import me.novoro.cobblemonbroadcaster.util.Permissions
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
@@ -23,6 +24,7 @@ class CobblemonBroadcaster : ModInitializer {
 	override fun onInitialize() {
 		displayAsciiArt()
 		this.configManager()
+		Permissions.initialize()
 		LangManager.loadConfig(mainConfig)
 		registerCommands()
 		registerServerLifecycleListeners()
